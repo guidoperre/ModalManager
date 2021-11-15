@@ -26,7 +26,7 @@ class ModalManager(
         stateObserver(owner)
     }
 
-    fun registerModal(clazz: Class<out ModalFragment>, priority: ModalPriority) {
+    fun registerModal(clazz: Class<out ModalView>, priority: ModalPriority) {
         // Add the modal into the queue
         queue.add(Modal(clazz, priority))
         // Launch a next modal request
@@ -34,18 +34,14 @@ class ModalManager(
     }
 
     private suspend fun showNext(): ModalResult = mutex.withLock {
-        try {
-            // Return a ModalResult from coroutine cancellation
-            return suspendCancellableCoroutine { continuation ->
-                queue.peek()?.let {
-                    it.clazz.getConstructor(
-                        CancellableContinuation::class.java
-                    ).newInstance(continuation)?.show(fragmentManager, "")
-                }
-            }
-        } finally {
-            // Finally remove the modal from the queue
+        // Return a ModalResult from coroutine cancellation
+        return suspendCancellableCoroutine { continuation ->
             queue.peek()?.let {
+                // Show modal
+                it.clazz.getConstructor(
+                    CancellableContinuation::class.java
+                ).newInstance(continuation)?.show(fragmentManager)
+                // Remove modal from the queue
                 removeModal(it)
             }
         }
